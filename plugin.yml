@@ -1,0 +1,21 @@
+name: AxEconomy
+main: me.DMan16.AxEconomy.AxEconomyMain
+depend: [Vault,AxUtils]
+softdepend: [Citizens]
+loadbefore: [dtlTradersPlus]
+version: 1.0
+description: Economy for Aldreda
+author: DMan16
+api-version: 1.16
+
+commands:
+  balance:
+    permission: aldreda.command.balance
+    aliases: [bal]
+  eco:
+    permission: aldreda.command.economy
+permissions:
+  aldreda.command.economy:
+    default: op
+  aldreda.command.balance:
+    default: true
