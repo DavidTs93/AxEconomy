@@ -1,20 +1,15 @@
 package me.DMan16.AxEconomy;
 
-import java.sql.DatabaseMetaData;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import me.Aldreda.AxUtils.AxUtils;
+import me.Aldreda.AxUtils.Utils.Utils;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.inventory.ItemStack;
+
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
-
-import org.bukkit.OfflinePlayer;
-import org.bukkit.inventory.ItemStack;
-
-import me.Aldreda.AxUtils.AxUtils;
-import me.Aldreda.AxUtils.Utils.Utils;
 
 class MySQL {
 	
