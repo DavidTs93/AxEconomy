@@ -1,25 +1,5 @@
 package me.DMan16.AxEconomy;
 
-import java.util.Arrays;
-
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.event.player.PlayerDropItemEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerItemHeldEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.player.PlayerSwapHandItemsEvent;
-import org.bukkit.inventory.ItemFlag;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.scheduler.BukkitRunnable;
-
 import io.papermc.paper.event.player.AsyncChatEvent;
 import me.Aldreda.AxUtils.Classes.Listener;
 import me.Aldreda.AxUtils.Utils.ListenerInventory;
@@ -28,8 +8,21 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.*;
+import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitRunnable;
 
-class BankBalanceViewer extends ListenerInventory {
+import java.util.Arrays;
+
+class BankViewerBalance extends ListenerInventory {
 	private final Player player;
 	
 	private final static int size = 1 * 9;
@@ -52,7 +45,7 @@ class BankBalanceViewer extends ListenerInventory {
 	private final int slotWithdraw = 5;
 	private final int slotWithdrawAll = 6;
 	
-	public BankBalanceViewer(Player player) {
+	public BankViewerBalance(Player player) {
 		super(Bukkit.getServer().createInventory(player,size,Component.translatable(Values.translateBank,
 				Values.translateBankColor).decoration(TextDecoration.ITALIC,false)));
 		this.player = player;

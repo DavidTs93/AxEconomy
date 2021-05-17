@@ -1,13 +1,12 @@
 package me.DMan16.AxEconomy;
 
-import java.sql.SQLException;
-
+import me.Aldreda.AxUtils.AxUtils;
+import me.Aldreda.AxUtils.Utils.Utils;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import me.Aldreda.AxUtils.AxUtils;
-import me.Aldreda.AxUtils.Utils.Utils;
+import java.sql.SQLException;
 
 public class AxEconomyMain extends JavaPlugin {
 	private static AxEconomyMain instance = null;
