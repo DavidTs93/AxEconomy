@@ -3,6 +3,7 @@ package me.DMan16.AxEconomy;
 import me.Aldreda.AxUtils.Utils.ListenerInventoryPages;
 import me.Aldreda.AxUtils.Utils.Utils;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
@@ -26,38 +27,53 @@ import java.util.List;
 import java.util.UUID;
 
 class BankViewer extends ListenerInventoryPages {
-	private int slotBankBalance;
 	private final static NamespacedKey pageKey = Utils.namespacedKey("bank_viewer_page");
 	static final ItemStack itemEmpty = makeBankItem(Utils.makeItem(Material.GRAY_STAINED_GLASS_PANE,Component.empty(),ItemFlag.values()));
 	private static final ItemStack itemBankBalance = makeBankItem(Utils.makeItem(Material.EMERALD,
 			BankViewerBalance.nameDeposit.append(Component.text("/").color(NamedTextColor.GRAY).append(BankViewerBalance.nameWithdraw).decoration(TextDecoration.ITALIC,
 					false)),ItemFlag.values()));
+	private static final ItemStack itemBankPurchasePage = makeBankItem(Utils.makeItem(Material.PAPER,
+			Component.translatable(Values.translatePurchase,NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC,false),ItemFlag.values()));
+	private int slotBankBalance;
+	private int slotPurchasePage;
 	
 	private HashMap<Integer,List<ItemStack>> originalBank;
 	private HashMap<Integer,List<ItemStack>> updatingBank;
 	private boolean owner;
 	private UUID ID;
 	private boolean first;
+	private boolean allowEdit;
 	
 	public BankViewer(Player viewer, UUID ID, String name) {
+		this(viewer,ID,name,false);
+	}
+	
+	public BankViewer(Player viewer, UUID ID, String name, boolean allowEdit) {
 		super(viewer,viewer,5,Component.translatable(Values.translateBank,Values.translateBankColor).append(Component.text(name == null ||
-				!viewer.getUniqueId().equals(ID) ? "": " " + name)).decoration(TextDecoration.ITALIC,false),AxEconomyMain.getInstance(),ID,name);
+				!viewer.getUniqueId().equals(ID) ? "": " " + name)).decoration(TextDecoration.ITALIC,false),AxEconomyMain.getInstance(),ID,name,allowEdit);
 	}
 	
 	@Override
 	protected void first(Object ... objs) {
 		this.ID = (UUID) objs[0];
 		this.owner = ((String) objs[1]) == null || !this.player.getUniqueId().equals(this.ID);
-		if (!this.owner) this.player = null;
+		this.allowEdit = this.owner || (boolean) objs[2];
+		//if (!this.owner) this.player = null;
 		this.originalBank = AxEconomyMain.getEconomy().getBank(this.ID);
 		this.updatingBank = AxEconomyMain.getEconomy().getBank(this.ID);
 		closeSlot = size - 9;
 		nextSlot = size - 1;
 		previousSlot = size - 2;
 		slotBankBalance = size - 5;
-		alwaysSetNext = true;
-		alwaysSetPrevious = true;
+		slotPurchasePage = size - 8;
+		/*alwaysSetNext = true;
+		alwaysSetPrevious = true;*/
 		first = true;
+	}
+	
+	@Override
+	protected boolean isEmpty(ItemStack item) {
+		return super.isEmpty(item) || Utils.sameItem(itemEmpty,item);
 	}
 	
 	@Override
@@ -77,7 +93,9 @@ class BankViewer extends ListenerInventoryPages {
 	
 	@Override
 	protected void otherSlot(InventoryClickEvent event, int slot, ItemStack slotItem) {
-		if (this.owner && slot == slotBankBalance) new BankViewerBalance(this.player);
+		if (!this.owner) return;
+		if (slot == slotBankBalance) new BankViewerBalance(this.player);
+		else if (slot == slotPurchasePage) new BankViewerUpgradeConfirm(this.player);
 	}
 	
 	@Override
@@ -95,12 +113,23 @@ class BankViewer extends ListenerInventoryPages {
 	protected void setPageContents(int page) {
 		List<ItemStack> bank = updatingBank.get(page);
 		for (int i = 0; i < bank.size(); i++) inventory.setItem(i,bank.get(i));
-		if (this.owner) inventory.setItem(slotBankBalance,itemBankBalance);
+		if (this.owner) {
+			inventory.setItem(slotBankBalance,itemBankBalance);
+			int banks = AxEconomyMain.getEconomy().getBanksCount(player);
+			if (banks > 0 && banks < Values.maxBanks) {
+				ItemStack purchasePage = itemBankPurchasePage.clone();
+				ItemMeta meta = purchasePage.getItemMeta();
+				meta.displayName(((TranslatableComponent) meta.displayName()).args(Component.translatable(Values.translatePage).args(Component.text("#" +
+						(banks + 1)).decoration(TextDecoration.ITALIC,false))));
+				purchasePage.setItemMeta(meta);
+				inventory.setItem(slotPurchasePage,purchasePage);
+			}
+		}
 	}
 	
 	@Override
 	protected void beforeSetPage(int page) {
-		if (owner) saveBankPage();
+		if (this.allowEdit) saveBankPage();
 	}
 	
 	@Override
@@ -113,21 +142,22 @@ class BankViewer extends ListenerInventoryPages {
 	protected ItemStack next(int page) {
 		int model = (page > 0 && page < updatingBank.size() - 1 ? Values.BankViewerNextYesModel : Values.BankViewerNextNoModel);
 		return makeBankItem(Utils.makeItem(Material.ARROW,Component.translatable(Values.translateNext,
-				Values.translateNextColor).decoration(TextDecoration.ITALIC,false),model,ItemFlag.values()));
+				Values.translateNextColor).append(Component.text(" (" + (page + 1) + ")")).decoration(TextDecoration.ITALIC,false),model,ItemFlag.values()));
 	}
 	
 	@Override
 	protected ItemStack previous(int page) {
 		int model = (page > 1 && page < updatingBank.size() ? Values.BankViewerPreviousYesModel : Values.BankViewerPreviousNoModel);
-		return makeBankItem(Utils.makeItem(Material.ARROW,Component.translatable(Values.translatePrevious,
-				Values.translatePreviousColor).decoration(TextDecoration.ITALIC,false),model,ItemFlag.values()));
+		return makeBankItem(Utils.makeItem(Material.ARROW,
+				Component.translatable(Values.translatePrevious,Values.translatePreviousColor).append(Component.text(" (" + (page - 1) + ")")).decoration(TextDecoration.ITALIC,false),
+				model,ItemFlag.values()));
 	}
 	
 	@Override
 	@EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
 	public void onInventoryDrag(InventoryDragEvent event) {
 		if (!event.getView().getTopInventory().equals(inventory)) return;
-		if (!owner) event.setCancelled(true);
+		if (!this.allowEdit) event.setCancelled(true);
 		else for (int slot : event.getRawSlots()) if (slot < size && slot >= size - 9) {
 			event.setCancelled(true);
 			return;
@@ -136,12 +166,12 @@ class BankViewer extends ListenerInventoryPages {
 	
 	@EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
 	public void onCloseSaveEvent(InventoryCloseEvent event) {
-		if (owner && !cancelCloseUnregister && event.getPlayer().equals(player) && event.getView().getTopInventory().equals(inventory)) saveBanks();
+		if (this.allowEdit && event.getView().getTopInventory().equals(inventory) && event.getPlayer().equals(player) && !cancelCloseUnregister) saveBanks();
 	}
 	
 	@EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
 	public void onQuitSaveEvent(PlayerQuitEvent event) {
-		if (owner && event.getPlayer().equals(player)) saveBanks();
+		if (this.allowEdit && event.getPlayer().equals(player)) saveBanks();
 	}
 	
 	private void saveBanks() {
@@ -159,7 +189,7 @@ class BankViewer extends ListenerInventoryPages {
 			if (!found) remove.add(i);
 		}
 		for (int i : remove) updatingBank.remove(i);
-		if (player == null) AxEconomyMain.getEconomy().setBank(ID,updatingBank);
+		if (!this.owner) AxEconomyMain.getEconomy().setBank(ID,updatingBank);
 		else AxEconomyMain.getEconomy().setBank(player,updatingBank);
 	}
 	

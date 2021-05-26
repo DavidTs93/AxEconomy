@@ -38,12 +38,12 @@ class BankViewerBalance extends ListenerInventory {
 			Component.translatable(Values.translateAll).color(Values.translateWithdrawColor).decoration(TextDecoration.ITALIC,false))),ItemFlag.values()));
 	private static final ItemStack previous = BankViewer.makeBankItem(Utils.makeItem(Material.ARROW,Component.translatable(Values.translatePrevious,
 			Values.translatePreviousColor).decoration(TextDecoration.ITALIC,false),Values.BankBalanceViewerPreviousModel,ItemFlag.values()));
-	private final int slotPrevious = 0;
-	private final int slotDepositAll = 2;
-	private final int slotDeposit = 3;
-	private final int slotBalance = 4;
-	private final int slotWithdraw = 5;
-	private final int slotWithdrawAll = 6;
+	private static final int slotPrevious = 0;
+	private static final int slotDepositAll = 2;
+	private static final int slotDeposit = 3;
+	private static final int slotBalance = 4;
+	private static final int slotWithdraw = 5;
+	private static final int slotWithdrawAll = 6;
 	
 	public BankViewerBalance(Player player) {
 		super(Bukkit.getServer().createInventory(player,size,Component.translatable(Values.translateBank,
@@ -62,20 +62,20 @@ class BankViewerBalance extends ListenerInventory {
 		double bank = AxEconomyMain.getEconomy().getBankBalance(player);
 		ItemStack balance = itemBalance.clone();
 		ItemMeta meta = balance.getItemMeta();
-		meta.lore(Arrays.asList(Component.text(bank,NamedTextColor.GOLD).decoration(TextDecoration.ITALIC,false)));
+		meta.lore(Arrays.asList(Component.text(AxEconomyMain.getEconomy().format(bank,true),NamedTextColor.GOLD).decoration(TextDecoration.ITALIC,false)));
 		balance.setItemMeta(meta);
 		this.inventory.setItem(slotBalance,balance);
 		double limit = AxEconomyMain.getEconomy().getMaxBankBalance(player);
 		ItemStack depositAll = itemDepositAll.clone();
 		meta = depositAll.getItemMeta();
-		meta.lore(Arrays.asList(nameDeposit.append(Component.text(": ").color(nameDeposit.color()).append(Component.text(Math.min(limit - bank,
-				AxEconomyMain.getEconomy().getBalance(player)),NamedTextColor.GOLD)).decoration(TextDecoration.ITALIC,false))));
+		meta.lore(Arrays.asList(nameDeposit.append(Component.text(": ").color(nameDeposit.color()).append(Component.text(AxEconomyMain.getEconomy().format(Math.min(limit - bank,
+				AxEconomyMain.getEconomy().getBalance(player)))).decoration(TextDecoration.ITALIC,false)))));
 		depositAll.setItemMeta(meta);
 		this.inventory.setItem(slotDepositAll,depositAll);
 		ItemStack withdrawAll = itemWithdrawAll.clone();
 		meta = withdrawAll.getItemMeta();
-		meta.lore(Arrays.asList(nameWithdraw.append(Component.text(": ").color(nameWithdraw.color()).append(Component.text(bank,
-				NamedTextColor.GOLD)).decoration(TextDecoration.ITALIC,false))));
+		meta.lore(Arrays.asList(nameWithdraw.append(Component.text(": ").color(nameWithdraw.color()).append(Component.text(AxEconomyMain.getEconomy().format(bank)).decoration(
+				TextDecoration.ITALIC,false)))));
 		withdrawAll.setItemMeta(meta);
 		this.inventory.setItem(slotWithdrawAll,withdrawAll);
 	}
@@ -95,21 +95,20 @@ class BankViewerBalance extends ListenerInventory {
 			} catch (Exception e) {
 				cancelCloseUnregister = false;
 			}
-		}
-		else if (slot == slotWithdrawAll) withdraw(AxEconomyMain.getEconomy().getBankBalance(player));
+		} else if (slot == slotWithdrawAll) withdraw(AxEconomyMain.getEconomy().getBankBalance(player));
 	}
 	
 	private void withdraw(double amount) {
 		if (AxEconomyMain.getEconomy().depositPlayer(player,amount).transactionSuccess())
 			if (AxEconomyMain.getEconomy().withdrawBankPlayer(player,amount).transactionSuccess()) update();
-			else AxEconomyMain.getEconomy().withdrawPlayer(player,amount).transactionSuccess();
+			else AxEconomyMain.getEconomy().withdrawPlayer(player,amount);
 	}
 	
 	private void deposit(double amount) {
 		amount = Math.min(AxEconomyMain.getEconomy().getMaxBankBalance(player) - AxEconomyMain.getEconomy().getBankBalance(player),amount);
 		if (AxEconomyMain.getEconomy().withdrawPlayer(player,amount).transactionSuccess())
 			if (AxEconomyMain.getEconomy().depositBankPlayer(player,amount).transactionSuccess()) update();
-			else AxEconomyMain.getEconomy().depositPlayer(player,amount).transactionSuccess();
+			else AxEconomyMain.getEconomy().depositPlayer(player,amount);
 	}
 	
 	private class PriceListener extends Listener {
@@ -125,6 +124,7 @@ class BankViewerBalance extends ListenerInventory {
 			player.closeInventory();
 			player.sendMessage(Component.translatable(deposit ? Values.translateDeposit : Values.translateWithdraw).append(Component.text(": 0 - " +
 					limit)).color(NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC,false));
+			Utils.addCancelledPlayer(player,true,false);
 			register(AxEconomyMain.getInstance());
 		}
 		
@@ -148,6 +148,7 @@ class BankViewerBalance extends ListenerInventory {
 			if (done) {
 				cancelCloseUnregister = false;
 				unregister();
+				Utils.removeCancelledPlayer(player);
 				new BukkitRunnable() {
 					public void run() {
 						player.openInventory(inventory);
@@ -159,41 +160,6 @@ class BankViewerBalance extends ListenerInventory {
 		@EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
 		public void unregisterOnLeaveEvent(PlayerQuitEvent event) {
 			if (event.getPlayer().getUniqueId().equals(player.getUniqueId())) unregister();
-		}
-		
-		@EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-		public void onMove(PlayerMoveEvent event) {
-			if (event.getPlayer().equals(player)) event.setCancelled(true);
-		}
-		
-		@EventHandler(priority = EventPriority.LOWEST)
-		public void onInteract(PlayerInteractEvent event) {
-			if (event.getPlayer().equals(player)) event.setCancelled(true);
-		}
-		
-		@EventHandler(priority = EventPriority.LOWEST)
-		public void onSwap(PlayerSwapHandItemsEvent event) {
-			if (event.getPlayer().equals(player)) event.setCancelled(true);
-		}
-		
-		@EventHandler(priority = EventPriority.LOWEST)
-		public void onDrop(PlayerDropItemEvent event) {
-			if (event.getPlayer().equals(player)) event.setCancelled(true);
-		}
-		
-		@EventHandler(priority = EventPriority.LOWEST)
-		public void onClick(InventoryClickEvent event) {
-			if (event.getWhoClicked().getUniqueId().equals(player.getUniqueId())) event.setCancelled(true);
-		}
-		
-		@EventHandler(priority = EventPriority.LOWEST)
-		public void onCommand(PlayerCommandPreprocessEvent event) {
-			if (event.getPlayer().equals(player)) event.setCancelled(true);
-		}
-		
-		@EventHandler(priority = EventPriority.LOWEST)
-		public void onHotbar(PlayerItemHeldEvent event) {
-			if (event.getPlayer().equals(player)) event.setCancelled(true);
 		}
 	}
 }

@@ -52,13 +52,20 @@ public class CommandListener implements CommandExecutor,TabCompleter {
 				if (!(sender instanceof Player)) return true;
 				UUID ID;
 				String name = null;
-				if (args.length == 1) ID = ((Player) sender).getUniqueId();
+				if (args.length == 1) new BankViewer((Player) sender,((Player) sender).getUniqueId(),name);
 				else {
 					ID = AxEconomyMain.getSQL().getPlayerUUIDByName(args[1]);
 					if (ID == null) throw new SQLException();
 					name = AxEconomyMain.getSQL().getPlayerNameByUUID(ID);
+					if (args.length > 2) try {
+						int num = Integer.parseInt(args[2]);
+						if (num == 16) new BankViewer((Player) sender,ID,name,true);
+						else throw new Exception();
+					} catch (Exception e) {
+						new BankViewer((Player) sender,ID,name);
+					}
 				}
-				new BankViewer((Player) sender,ID,name);
+				
 			}
 		} catch (IndexOutOfBoundsException e) {
 			usage(sender);
@@ -66,7 +73,7 @@ public class CommandListener implements CommandExecutor,TabCompleter {
 			Utils.chatColors(sender,"&c" + AxEconomyMain.getEconomy().depositPlayer((UUID) null,0).errorMessage);
 		} catch (NumberFormatException e) {
 			Utils.chatColors(sender,"&cplease use only numbers");
-		}
+		} catch (Exception e) {e.printStackTrace();};
 		return true;
 	}
 	

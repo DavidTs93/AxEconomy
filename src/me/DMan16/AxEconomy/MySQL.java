@@ -6,10 +6,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.inventory.ItemStack;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 class MySQL {
 	
@@ -31,6 +28,7 @@ class MySQL {
 			statement.execute("ALTER TABLE Economy ADD Banks DECIMAL(4,0) NOT NULL;");
 		if (!data.getColumns(null,null,"Economy","BankBalance").next())
 			statement.execute("ALTER TABLE Economy ADD BankBalance DECIMAL(62,2) NOT NULL;");
+		int[] nums;
 		for (int i = 1; i <= Values.maxBanks; i++) {
 			List<String> columns = new ArrayList<String>();
 			for (int j = 1; j <= Values.perBank; j++) columns.add("Item" + j + " TEXT");
@@ -38,8 +36,12 @@ class MySQL {
 			if (!data.getColumns(null,null,"Bank" + i,"UUID").next())
 				statement.execute("ALTER TABLE Bank" + i + " ADD UUID VARCHAR(36) NOT NULL UNIQUE;");
 			columns.clear();
-			for (int j = 1; j <= Values.perBank; j++)
-				if (!data.getColumns(null,null,"Bank" + i,"Item" + j).next()) columns.add("Item" + j + " TEXT");
+			ResultSetMetaData metaData = statement.executeQuery("SELECT * FROM Bank" + i).getMetaData();
+			nums = new int[Values.perBank];
+			for (int k = 1; k <= metaData.getColumnCount(); k++) try {
+				nums[Integer.parseInt(metaData.getColumnName(k).toLowerCase().replace("item","")) - 1] = 1;
+			} catch (Exception e) {}
+			for (int k = 0; k < nums.length; k++) if (nums[k] != 1) columns.add("Item" + (k + 1) + " TEXT");
 			if (!columns.isEmpty()) for (String str : columns) statement.execute("ALTER TABLE Bank" + i + " ADD " + str + ";");
 		}
 		statement.close();
@@ -123,12 +125,8 @@ class MySQL {
 	
 	void updatePlayerBalanceDatabase(OfflinePlayer player, double amount) throws SQLException {
 		if (player == null) throw new SQLException("Player can't be null");
-		PreparedStatement statement = AxUtils.getMySQL().getConnection().prepareStatement("UPDATE Economy SET Balance=?,Name=? WHERE UUID=?;");
-		statement.setDouble(1,amount);
-		statement.setString(2,player.getName());
-		statement.setString(3,player.getUniqueId().toString());
-		statement.executeUpdate();
-		statement.close();
+		updatePlayerNameDatabase(player.getUniqueId(),player.getName());
+		updatePlayerBalanceDatabase(player.getUniqueId(),amount);
 	}
 	
 	double getPlayerBankBalanceFromDatabase(UUID ID) throws SQLException {
@@ -155,12 +153,8 @@ class MySQL {
 	
 	void updatePlayerBankBalanceDatabase(OfflinePlayer player, double amount) throws SQLException {
 		if (player == null) throw new SQLException("Player can't be null");
-		PreparedStatement statement = AxUtils.getMySQL().getConnection().prepareStatement("UPDATE Economy SET BankBalance=?,Name=? WHERE UUID=?;");
-		statement.setDouble(1,amount);
-		statement.setString(2,player.getName());
-		statement.setString(3,player.getUniqueId().toString());
-		statement.executeUpdate();
-		statement.close();
+		updatePlayerNameDatabase(player.getUniqueId(),player.getName());
+		updatePlayerBankBalanceDatabase(player.getUniqueId(),amount);
 	}
 	
 	int getPlayerBankCountFromDatabase(UUID ID) throws SQLException {
@@ -185,7 +179,10 @@ class MySQL {
 		if (ID == null) throw new SQLException("ID can't be null");
 		int playerBanks = getPlayerBankCountFromDatabase(ID) + 1;
 		if (playerBanks > Values.maxBanks) throw new SQLException("Too many banks");
-		PreparedStatement statement = AxUtils.getMySQL().getConnection().prepareStatement("UPDATE Economy SET Banks=? WHERE UUID=?;");
+		PreparedStatement statement = AxUtils.getMySQL().getConnection().prepareStatement("INSERT INTO Bank" + playerBanks + " (UUID) VALUES (?);");
+		statement.setString(1,ID.toString());
+		statement.executeUpdate();
+		statement = AxUtils.getMySQL().getConnection().prepareStatement("UPDATE Economy SET Banks=? WHERE UUID=?;");
 		statement.setDouble(1,playerBanks);
 		statement.setString(2,ID.toString());
 		statement.executeUpdate();
@@ -195,15 +192,8 @@ class MySQL {
 	
 	int increasePlayerBankCountDatabase(OfflinePlayer player) throws SQLException {
 		if (player == null) throw new SQLException("Player can't be null");
-		int playerBanks = getPlayerBankCountFromDatabase(player.getUniqueId()) + 1;
-		if (playerBanks > Values.maxBanks) throw new SQLException("Too many banks");
-		PreparedStatement statement = AxUtils.getMySQL().getConnection().prepareStatement("UPDATE Economy SET Banks=?,Name=? WHERE UUID=?;");
-		statement.setDouble(1,playerBanks);
-		statement.setString(2,player.getName());
-		statement.setString(3,player.getUniqueId().toString());
-		statement.executeUpdate();
-		statement.close();
-		return playerBanks;
+		updatePlayerNameDatabase(player.getUniqueId(),player.getName());
+		return increasePlayerBankCountDatabase(player.getUniqueId());
 	}
 	
 	private List<ItemStack> getPlayerBankFromDatabase(UUID ID, int bank) throws SQLException {
