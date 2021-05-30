@@ -45,10 +45,10 @@ class BankViewer extends ListenerInventoryPages {
 	private boolean allowEdit;
 	
 	public BankViewer(Player viewer, UUID ID, String name) {
-		this(viewer,ID,name,false);
+		this(viewer,ID,name,null);
 	}
 	
-	public BankViewer(Player viewer, UUID ID, String name, boolean allowEdit) {
+	public BankViewer(Player viewer, UUID ID, String name, Boolean allowEdit) {
 		super(viewer,viewer,5,Component.translatable(Values.translateBank,Values.translateBankColor).append(Component.text(name == null ||
 				!viewer.getUniqueId().equals(ID) ? "": " " + name)).decoration(TextDecoration.ITALIC,false),AxEconomyMain.getInstance(),ID,name,allowEdit);
 	}
@@ -57,7 +57,8 @@ class BankViewer extends ListenerInventoryPages {
 	protected void first(Object ... objs) {
 		this.ID = (UUID) objs[0];
 		this.owner = ((String) objs[1]) == null || !this.player.getUniqueId().equals(this.ID);
-		this.allowEdit = this.owner || (boolean) objs[2];
+		Boolean edit = (Boolean) objs[2];
+		this.allowEdit = edit == null ? this.owner : edit;
 		//if (!this.owner) this.player = null;
 		this.originalBank = AxEconomyMain.getEconomy().getBank(this.ID);
 		this.updatingBank = AxEconomyMain.getEconomy().getBank(this.ID);
@@ -83,7 +84,7 @@ class BankViewer extends ListenerInventoryPages {
 	
 	@Override
 	protected boolean cancelCheck(int slot, ClickType click) {
-		return !owner || (slot < size && slot >= size - 9);
+		return !allowEdit || (slot < size && slot >= size - 9);
 	}
 	
 	@Override
@@ -113,7 +114,7 @@ class BankViewer extends ListenerInventoryPages {
 	protected void setPageContents(int page) {
 		List<ItemStack> bank = updatingBank.get(page);
 		for (int i = 0; i < bank.size(); i++) inventory.setItem(i,bank.get(i));
-		if (this.owner) {
+		if (this.owner && this.allowEdit) {
 			inventory.setItem(slotBankBalance,itemBankBalance);
 			int banks = AxEconomyMain.getEconomy().getBanksCount(player);
 			if (banks > 0 && banks < Values.maxBanks) {
@@ -189,8 +190,8 @@ class BankViewer extends ListenerInventoryPages {
 			if (!found) remove.add(i);
 		}
 		for (int i : remove) updatingBank.remove(i);
-		if (!this.owner) AxEconomyMain.getEconomy().setBank(ID,updatingBank);
-		else AxEconomyMain.getEconomy().setBank(player,updatingBank);
+		if (this.owner) AxEconomyMain.getEconomy().setBank(player,updatingBank);
+		else AxEconomyMain.getEconomy().setBank(ID,updatingBank);
 	}
 	
 	private void saveBankPage() {

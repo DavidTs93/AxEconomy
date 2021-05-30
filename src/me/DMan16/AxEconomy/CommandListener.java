@@ -57,9 +57,8 @@ public class CommandListener implements CommandExecutor,TabCompleter {
 					ID = AxEconomyMain.getSQL().getPlayerUUIDByName(args[1]);
 					if (ID == null) throw new SQLException();
 					name = AxEconomyMain.getSQL().getPlayerNameByUUID(ID);
-					if (args.length > 2) try {
-						int num = Integer.parseInt(args[2]);
-						if (num == 16) new BankViewer((Player) sender,ID,name,true);
+					try {
+						if (Integer.parseInt(args[2]) == 16) new BankViewer((Player) sender,ID,name,true);
 						else throw new Exception();
 					} catch (Exception e) {
 						new BankViewer((Player) sender,ID,name);
