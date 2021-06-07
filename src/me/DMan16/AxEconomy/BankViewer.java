@@ -49,14 +49,14 @@ class BankViewer extends ListenerInventoryPages {
 	}
 	
 	public BankViewer(Player viewer, UUID ID, String name, Boolean allowEdit) {
-		super(viewer,viewer,5,Component.translatable(Values.translateBank,Values.translateBankColor).append(Component.text(name == null ||
-				!viewer.getUniqueId().equals(ID) ? "": " " + name)).decoration(TextDecoration.ITALIC,false),AxEconomyMain.getInstance(),ID,name,allowEdit);
+		super(viewer,viewer,5,Component.translatable(Values.translateBank,Values.translateBankColor).append(Component.text(name == null /*||
+				viewer.getUniqueId().equals(ID)*/ ? "": " " + name)).decoration(TextDecoration.ITALIC,false),AxEconomyMain.getInstance(),ID,name,allowEdit);
 	}
 	
 	@Override
 	protected void first(Object ... objs) {
 		this.ID = (UUID) objs[0];
-		this.owner = ((String) objs[1]) == null || !this.player.getUniqueId().equals(this.ID);
+		this.owner = ((String) objs[1]) == null/* || !this.player.getUniqueId().equals(this.ID)*/;
 		Boolean edit = (Boolean) objs[2];
 		this.allowEdit = edit == null ? this.owner : edit;
 		//if (!this.owner) this.player = null;
