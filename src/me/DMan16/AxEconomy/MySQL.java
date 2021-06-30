@@ -15,8 +15,8 @@ class MySQL {
 	}
 	
 	private void createTable() throws SQLException {
-		Statement statement = AxUtils.getMySQL().getConnection().createStatement();
-		DatabaseMetaData data = AxUtils.getMySQL().getConnection().getMetaData();
+		Statement statement = AxUtils.getConnection().createStatement();
+		DatabaseMetaData data = AxUtils.getConnection().getMetaData();
 		statement.execute("CREATE TABLE IF NOT EXISTS Economy (UUID VARCHAR(36) NOT NULL UNIQUE);");
 		if (!data.getColumns(null,null,"Economy","UUID").next())
 			statement.execute("ALTER TABLE Economy ADD UUID VARCHAR(36) NOT NULL UNIQUE;");
@@ -50,12 +50,12 @@ class MySQL {
 	boolean checkPlayerInDatabase(UUID ID) throws SQLException {
 		if (ID == null) throw new SQLException("ID can't be null");
 		boolean result = true;
-		PreparedStatement statement = AxUtils.getMySQL().getConnection().prepareStatement("SELECT * FROM Economy WHERE UUID=?;");
+		PreparedStatement statement = AxUtils.getConnection().prepareStatement("SELECT * FROM Economy WHERE UUID=?;");
 		statement.setString(1,ID.toString());
 		result = result && statement.executeQuery().next();
 		statement.close();
 		for (int i = 1; i <= getPlayerBankCountFromDatabase(ID); i++) {
-			statement = AxUtils.getMySQL().getConnection().prepareStatement("SELECT * FROM Bank" + i + " WHERE UUID=?;");
+			statement = AxUtils.getConnection().prepareStatement("SELECT * FROM Bank" + i + " WHERE UUID=?;");
 			statement.setString(1,ID.toString());
 			result = result && statement.executeQuery().next();
 			statement.close();
@@ -72,7 +72,7 @@ class MySQL {
 		if (ID == null) throw new SQLException("ID can't be null");
 		if (name == null) throw new SQLException("Name can't be null");
 		PreparedStatement statement;
-		statement = AxUtils.getMySQL().getConnection().prepareStatement("INSERT INTO Economy (UUID,Balance,Name,Banks,BankBalance) VALUES (?,?,?,?,?);");
+		statement = AxUtils.getConnection().prepareStatement("INSERT INTO Economy (UUID,Balance,Name,Banks,BankBalance) VALUES (?,?,?,?,?);");
 		statement.setString(1,ID.toString());
 		statement.setDouble(2,Values.startingBalance);
 		statement.setString(3,name);
@@ -83,7 +83,7 @@ class MySQL {
 		} catch (SQLException e) {}
 		statement.close();
 		for (int i = 1; i <= Values.startingBanks; i++) {
-			statement = AxUtils.getMySQL().getConnection().prepareStatement("INSERT INTO Bank" + i + " (UUID) VALUES (?);");
+			statement = AxUtils.getConnection().prepareStatement("INSERT INTO Bank" + i + " (UUID) VALUES (?);");
 			statement.setString(1,ID.toString());
 			try {
 				statement.executeUpdate();
@@ -94,7 +94,7 @@ class MySQL {
 	}
 	
 	void updatePlayerNameDatabase(UUID ID, String name) throws SQLException {
-		PreparedStatement statement = AxUtils.getMySQL().getConnection().prepareStatement("UPDATE Economy SET Name=? WHERE UUID=?;");
+		PreparedStatement statement = AxUtils.getConnection().prepareStatement("UPDATE Economy SET Name=? WHERE UUID=?;");
 		statement.setString(1,ID.toString());
 		statement.setString(2,name);
 		statement.executeUpdate();
@@ -103,7 +103,7 @@ class MySQL {
 	
 	double getPlayerBalanceFromDatabase(UUID ID) throws SQLException {
 		if (ID == null) throw new SQLException("ID can't be null");
-		PreparedStatement statement = AxUtils.getMySQL().getConnection().prepareStatement("SELECT * FROM Economy WHERE UUID=?;");
+		PreparedStatement statement = AxUtils.getConnection().prepareStatement("SELECT * FROM Economy WHERE UUID=?;");
 		statement.setString(1,ID.toString());
 		ResultSet result = statement.executeQuery();
 		result.next();
@@ -116,7 +116,7 @@ class MySQL {
 	
 	void updatePlayerBalanceDatabase(UUID ID, double amount) throws SQLException {
 		if (ID == null) throw new SQLException("ID can't be null");
-		PreparedStatement statement = AxUtils.getMySQL().getConnection().prepareStatement("UPDATE Economy SET Balance=? WHERE UUID=?;");
+		PreparedStatement statement = AxUtils.getConnection().prepareStatement("UPDATE Economy SET Balance=? WHERE UUID=?;");
 		statement.setDouble(1,amount);
 		statement.setString(2,ID.toString());
 		statement.executeUpdate();
@@ -131,7 +131,7 @@ class MySQL {
 	
 	double getPlayerBankBalanceFromDatabase(UUID ID) throws SQLException {
 		if (ID == null) throw new SQLException("ID can't be null");
-		PreparedStatement statement = AxUtils.getMySQL().getConnection().prepareStatement("SELECT * FROM Economy WHERE UUID=?;");
+		PreparedStatement statement = AxUtils.getConnection().prepareStatement("SELECT * FROM Economy WHERE UUID=?;");
 		statement.setString(1,ID.toString());
 		ResultSet result = statement.executeQuery();
 		result.next();
@@ -144,7 +144,7 @@ class MySQL {
 	
 	void updatePlayerBankBalanceDatabase(UUID ID, double amount) throws SQLException {
 		if (ID == null) throw new SQLException("ID can't be null");
-		PreparedStatement statement = AxUtils.getMySQL().getConnection().prepareStatement("UPDATE Economy SET BankBalance=? WHERE UUID=?;");
+		PreparedStatement statement = AxUtils.getConnection().prepareStatement("UPDATE Economy SET BankBalance=? WHERE UUID=?;");
 		statement.setDouble(1,amount);
 		statement.setString(2,ID.toString());
 		statement.executeUpdate();
@@ -159,7 +159,7 @@ class MySQL {
 	
 	int getPlayerBankCountFromDatabase(UUID ID) throws SQLException {
 		if (ID == null) throw new SQLException("ID can't be null");
-		PreparedStatement statement = AxUtils.getMySQL().getConnection().prepareStatement("SELECT * FROM Economy WHERE UUID=?;");
+		PreparedStatement statement = AxUtils.getConnection().prepareStatement("SELECT * FROM Economy WHERE UUID=?;");
 		statement.setString(1,ID.toString());
 		ResultSet resultBank = statement.executeQuery();
 		resultBank.next();
@@ -179,10 +179,10 @@ class MySQL {
 		if (ID == null) throw new SQLException("ID can't be null");
 		int playerBanks = getPlayerBankCountFromDatabase(ID) + 1;
 		if (playerBanks > Values.maxBanks) throw new SQLException("Too many banks");
-		PreparedStatement statement = AxUtils.getMySQL().getConnection().prepareStatement("INSERT INTO Bank" + playerBanks + " (UUID) VALUES (?);");
+		PreparedStatement statement = AxUtils.getConnection().prepareStatement("INSERT INTO Bank" + playerBanks + " (UUID) VALUES (?);");
 		statement.setString(1,ID.toString());
 		statement.executeUpdate();
-		statement = AxUtils.getMySQL().getConnection().prepareStatement("UPDATE Economy SET Banks=? WHERE UUID=?;");
+		statement = AxUtils.getConnection().prepareStatement("UPDATE Economy SET Banks=? WHERE UUID=?;");
 		statement.setDouble(1,playerBanks);
 		statement.setString(2,ID.toString());
 		statement.executeUpdate();
@@ -198,7 +198,7 @@ class MySQL {
 	
 	private List<ItemStack> getPlayerBankFromDatabase(UUID ID, int bank) throws SQLException {
 		List<ItemStack> items = new ArrayList<ItemStack>();
-		PreparedStatement statement = AxUtils.getMySQL().getConnection().prepareStatement("SELECT * FROM Bank" + bank + " WHERE UUID=?;");
+		PreparedStatement statement = AxUtils.getConnection().prepareStatement("SELECT * FROM Bank" + bank + " WHERE UUID=?;");
 		statement.setString(1,ID.toString());
 		ResultSet resultBank = statement.executeQuery();
 		if (!resultBank.next()) throw new SQLException();
@@ -230,7 +230,7 @@ class MySQL {
 			ItemStack item = Utils.isNull(items.get(i - 1)) ? null : items.get(i - 1);
 			itemsStr.add("Item" + i + "=" + (item == null ? "null" : "\"" + Utils.ObjectToBase64(item) + "\""));
 		}
-		PreparedStatement statement = AxUtils.getMySQL().getConnection().prepareStatement("UPDATE Bank" + bank + " Set " + String.join(",",itemsStr) +
+		PreparedStatement statement = AxUtils.getConnection().prepareStatement("UPDATE Bank" + bank + " Set " + String.join(",",itemsStr) +
 				" WHERE UUID=?;");
 		statement.setString(1,ID.toString());
 		statement.executeUpdate();
@@ -253,7 +253,7 @@ class MySQL {
 	
 	UUID getPlayerUUIDByName(String name) throws SQLException {
 		if (name == null) throw new SQLException("Name can't be null");
-		Statement statement = AxUtils.getMySQL().getConnection().createStatement();
+		Statement statement = AxUtils.getConnection().createStatement();
 		ResultSet result = statement.executeQuery("SELECT * FROM Economy;");
 		UUID ID = null;
 		while (result.next()) try {
@@ -269,7 +269,7 @@ class MySQL {
 	
 	String getPlayerNameByUUID(UUID ID) throws SQLException {
 		if (ID == null) throw new SQLException("ID can't be null");
-		Statement statement = AxUtils.getMySQL().getConnection().createStatement();
+		Statement statement = AxUtils.getConnection().createStatement();
 		ResultSet result = statement.executeQuery("SELECT * FROM Economy;");
 		String name = null;
 		while (result.next()) try {

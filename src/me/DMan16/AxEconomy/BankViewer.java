@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.UUID;
 
 class BankViewer extends ListenerInventoryPages {
-	private final static NamespacedKey pageKey = Utils.namespacedKey("bank_viewer_page");
+	private final static NamespacedKey pageKey = new NamespacedKey(AxEconomyMain.getInstance(),"axeconomy_bank_viewer_page");
 	static final ItemStack itemEmpty = makeBankItem(Utils.makeItem(Material.GRAY_STAINED_GLASS_PANE,Component.empty(),ItemFlag.values()));
 	private static final ItemStack itemBankBalance = makeBankItem(Utils.makeItem(Material.EMERALD,
 			BankViewerBalance.nameDeposit.append(Component.text("/").color(NamedTextColor.GRAY).append(BankViewerBalance.nameWithdraw).decoration(TextDecoration.ITALIC,
