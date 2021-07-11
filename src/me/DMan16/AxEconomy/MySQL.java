@@ -2,11 +2,13 @@ package me.DMan16.AxEconomy;
 
 import me.Aldreda.AxUtils.AxUtils;
 import me.Aldreda.AxUtils.Utils.Utils;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.inventory.ItemStack;
 
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.UUID;
 
 class MySQL {
 	
@@ -17,13 +19,11 @@ class MySQL {
 	private void createTable() throws SQLException {
 		Statement statement = AxUtils.getConnection().createStatement();
 		DatabaseMetaData data = AxUtils.getConnection().getMetaData();
-		statement.execute("CREATE TABLE IF NOT EXISTS Economy (UUID VARCHAR(36) NOT NULL UNIQUE);");
+		statement.execute("CREATE TABLE IF NOT EXISTS Economy (UUID VARCHAR(36) NOT NULL UNIQUE,Balance DECIMAL(62,2) NOT NULL,Banks DECIMAL(4,0) NOT NULL,BankBalance DECIMAL(62,2) NOT NULL);");
 		if (!data.getColumns(null,null,"Economy","UUID").next())
 			statement.execute("ALTER TABLE Economy ADD UUID VARCHAR(36) NOT NULL UNIQUE;");
 		if (!data.getColumns(null,null,"Economy","Balance").next())
 			statement.execute("ALTER TABLE Economy ADD Balance DECIMAL(62,2) NOT NULL;");
-		if (!data.getColumns(null,null,"Economy","Name").next())
-			statement.execute("ALTER TABLE Economy ADD Name TEXT NOT NULL;");
 		if (!data.getColumns(null,null,"Economy","Banks").next())
 			statement.execute("ALTER TABLE Economy ADD Banks DECIMAL(4,0) NOT NULL;");
 		if (!data.getColumns(null,null,"Economy","BankBalance").next())
@@ -63,21 +63,14 @@ class MySQL {
 		return result;
 	}
 	
-	void addPlayerToDatabase(OfflinePlayer player) throws SQLException {
-		if (player == null) throw new SQLException("Player can't be null");
-		addPlayerToDatabase(player.getUniqueId(),player.getName());
-	}
-	
-	void addPlayerToDatabase(UUID ID, String name) throws SQLException {
+	void addPlayerToDatabase(UUID ID) throws SQLException {
 		if (ID == null) throw new SQLException("ID can't be null");
-		if (name == null) throw new SQLException("Name can't be null");
 		PreparedStatement statement;
-		statement = AxUtils.getConnection().prepareStatement("INSERT INTO Economy (UUID,Balance,Name,Banks,BankBalance) VALUES (?,?,?,?,?);");
+		statement = AxUtils.getConnection().prepareStatement("INSERT INTO Economy (UUID,Balance,Banks,BankBalance) VALUES (?,?,?,?);");
 		statement.setString(1,ID.toString());
 		statement.setDouble(2,Values.startingBalance);
-		statement.setString(3,name);
-		statement.setInt(4,Values.startingBanks);
-		statement.setInt(5,0);
+		statement.setInt(3,Values.startingBanks);
+		statement.setInt(4,0);
 		try {
 			statement.executeUpdate();
 		} catch (SQLException e) {}
@@ -90,14 +83,6 @@ class MySQL {
 			} catch (SQLException e) {}
 			statement.close();
 		}
-		statement.close();
-	}
-	
-	void updatePlayerNameDatabase(UUID ID, String name) throws SQLException {
-		PreparedStatement statement = AxUtils.getConnection().prepareStatement("UPDATE Economy SET Name=? WHERE UUID=?;");
-		statement.setString(1,ID.toString());
-		statement.setString(2,name);
-		statement.executeUpdate();
 		statement.close();
 	}
 	
@@ -123,12 +108,6 @@ class MySQL {
 		statement.close();
 	}
 	
-	void updatePlayerBalanceDatabase(OfflinePlayer player, double amount) throws SQLException {
-		if (player == null) throw new SQLException("Player can't be null");
-		updatePlayerNameDatabase(player.getUniqueId(),player.getName());
-		updatePlayerBalanceDatabase(player.getUniqueId(),amount);
-	}
-	
 	double getPlayerBankBalanceFromDatabase(UUID ID) throws SQLException {
 		if (ID == null) throw new SQLException("ID can't be null");
 		PreparedStatement statement = AxUtils.getConnection().prepareStatement("SELECT * FROM Economy WHERE UUID=?;");
@@ -149,12 +128,6 @@ class MySQL {
 		statement.setString(2,ID.toString());
 		statement.executeUpdate();
 		statement.close();
-	}
-	
-	void updatePlayerBankBalanceDatabase(OfflinePlayer player, double amount) throws SQLException {
-		if (player == null) throw new SQLException("Player can't be null");
-		updatePlayerNameDatabase(player.getUniqueId(),player.getName());
-		updatePlayerBankBalanceDatabase(player.getUniqueId(),amount);
 	}
 	
 	int getPlayerBankCountFromDatabase(UUID ID) throws SQLException {
@@ -188,12 +161,6 @@ class MySQL {
 		statement.executeUpdate();
 		statement.close();
 		return playerBanks;
-	}
-	
-	int increasePlayerBankCountDatabase(OfflinePlayer player) throws SQLException {
-		if (player == null) throw new SQLException("Player can't be null");
-		updatePlayerNameDatabase(player.getUniqueId(),player.getName());
-		return increasePlayerBankCountDatabase(player.getUniqueId());
 	}
 	
 	private List<ItemStack> getPlayerBankFromDatabase(UUID ID, int bank) throws SQLException {
@@ -242,44 +209,5 @@ class MySQL {
 		if (banks == null) throw new SQLException("Banks can't be null");
 		if (banks.isEmpty()) return;
 		for (int i : banks.keySet()) updatePlayerBankDatabase(ID,i,banks.get(i));
-	}
-	
-	void updatePlayerBanksDatabase(OfflinePlayer player, HashMap<Integer,List<ItemStack>> banks) throws SQLException {
-		if (player == null) throw new SQLException("Player can't be null");
-		if (banks == null) throw new SQLException("Banks can't be null");
-		updatePlayerBanksDatabase(player.getUniqueId(),banks);
-		updatePlayerNameDatabase(player.getUniqueId(),player.getName());
-	}
-	
-	UUID getPlayerUUIDByName(String name) throws SQLException {
-		if (name == null) throw new SQLException("Name can't be null");
-		Statement statement = AxUtils.getConnection().createStatement();
-		ResultSet result = statement.executeQuery("SELECT * FROM Economy;");
-		UUID ID = null;
-		while (result.next()) try {
-			if (result.getString("Name").equalsIgnoreCase(name)) {
-				ID = UUID.fromString(result.getString("UUID"));
-				break;
-			}
-		} catch (Exception e) {}
-		result.close();
-		statement.close();
-		return ID;
-	}
-	
-	String getPlayerNameByUUID(UUID ID) throws SQLException {
-		if (ID == null) throw new SQLException("ID can't be null");
-		Statement statement = AxUtils.getConnection().createStatement();
-		ResultSet result = statement.executeQuery("SELECT * FROM Economy;");
-		String name = null;
-		while (result.next()) try {
-			if (ID.toString().equals(result.getString("UUID"))) {
-				name = result.getString("Name");
-				break;
-			}
-		} catch (Exception e) {}
-		result.close();
-		statement.close();
-		return name;
 	}
 }

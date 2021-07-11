@@ -13,19 +13,23 @@ public class AxEconomyMain extends JavaPlugin {
 	private static AxEconomy economy = null;
 	private static MySQL SQL = null;
 	
+	public void onLoad() {
+		economy = new AxEconomy();
+		getServer().getServicesManager().register(net.milkbowl.vault.economy.Economy.class,economy,this,ServicePriority.Highest);
+	}
+	
 	public void onEnable() {
 		instance = this;
 		try {
 			SQL = new MySQL();
 		} catch (SQLException e) {
+			getServer().getServicesManager().unregister(net.milkbowl.vault.economy.Economy.class,economy);
 			Utils.chatColorsLogPlugin("&fAxEconomy &bMySQL connection: &cFAILURE!!!");
 			this.getLogger().severe("MySQL error: ");
 			e.printStackTrace();
 			Bukkit.getPluginManager().disablePlugin(this);
 			return;
 		}
-		economy = new AxEconomy();
-		this.getServer().getServicesManager().register(net.milkbowl.vault.economy.Economy.class,economy,this,ServicePriority.Highest);
 		AxUtils.AxEconomyReady();
 		new PlayerListener();
 		new CommandListener();

@@ -1,16 +1,15 @@
 package me.DMan16.AxEconomy;
 
+import me.Aldreda.AxUtils.Utils.Utils;
+import net.milkbowl.vault.economy.EconomyResponse;
+import net.milkbowl.vault.economy.EconomyResponse.ResponseType;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.inventory.ItemStack;
+
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
-
-import org.bukkit.OfflinePlayer;
-import org.bukkit.inventory.ItemStack;
-
-import me.Aldreda.AxUtils.Utils.Utils;
-import net.milkbowl.vault.economy.EconomyResponse;
-import net.milkbowl.vault.economy.EconomyResponse.ResponseType;
 
 public class AxEconomy implements net.milkbowl.vault.economy.Economy {
 	
@@ -32,6 +31,18 @@ public class AxEconomy implements net.milkbowl.vault.economy.Economy {
 	@Override
 	public int fractionalDigits() {
 		return 2;
+	}
+	
+	public double format(String str) {
+		double suffixMult = 1;
+		if (str.toLowerCase().endsWith("k") || str.toLowerCase().endsWith("m") || str.toLowerCase().endsWith("b")) {
+			String suffix = str.substring(str.length() - 1);
+			str = str.substring(0,str.length() - 1).toLowerCase();
+			if (suffix.equals("k")) suffixMult = 1e3;
+			else if (suffix.equals("m")) suffixMult = 1e6;
+			else suffixMult = 1e9;
+		}
+		return Double.parseDouble(str) * suffixMult;
 	}
 	
 	@Override
@@ -72,8 +83,7 @@ public class AxEconomy implements net.milkbowl.vault.economy.Economy {
 		}
 		String formatAmount = Double.toString(newAmount);
 		if (Math.round(newAmount) == newAmount) formatAmount = Integer.toString((int) Math.round(newAmount));
-		String format = Utils.chatColors(color + formatAmount + suffix + " ") + name;
-		return format;
+		return Utils.chatColors(color + formatAmount + suffix + " ") + name;
 	}
 	
 	@Override
@@ -88,7 +98,7 @@ public class AxEconomy implements net.milkbowl.vault.economy.Economy {
 	
 	@Override
 	public boolean hasAccount(String name) {
-		return hasAccount(getOfflinePlayerUUID(name));
+		return hasAccount(Utils.getPlayerUUIDByName(name));
 	}
 	
 	@Override
@@ -116,7 +126,7 @@ public class AxEconomy implements net.milkbowl.vault.economy.Economy {
 	
 	@Override
 	public double getBalance(String name) {
-		return getBalance(getOfflinePlayerUUID(name));
+		return getBalance(Utils.getPlayerUUIDByName(name));
 	}
 	
 	@Override
@@ -168,7 +178,7 @@ public class AxEconomy implements net.milkbowl.vault.economy.Economy {
 	
 	@Override
 	public EconomyResponse withdrawPlayer(String name, double amount) {
-		return withdrawPlayer(getOfflinePlayerUUID(name),amount);
+		return withdrawPlayer(Utils.getPlayerUUIDByName(name),amount);
 	}
 	
 	@Override
@@ -207,7 +217,7 @@ public class AxEconomy implements net.milkbowl.vault.economy.Economy {
 	
 	@Override
 	public EconomyResponse depositPlayer(String name, double amount) {
-		return depositPlayer(getOfflinePlayerUUID(name),amount);
+		return depositPlayer(Utils.getPlayerUUIDByName(name),amount);
 	}
 	
 	@Override
@@ -318,7 +328,7 @@ public class AxEconomy implements net.milkbowl.vault.economy.Economy {
 	
 	@Override
 	public boolean createPlayerAccount(String name) {
-		return createPlayerAccount(getOfflinePlayerUUID(name),name);
+		return createPlayerAccount(Utils.getPlayerUUIDByName(name),name);
 	}
 	
 	@Override
@@ -329,7 +339,7 @@ public class AxEconomy implements net.milkbowl.vault.economy.Economy {
 	public boolean createPlayerAccount(UUID ID, String name) {
 		if (ID != null && name != null) try {
 			if (hasAccount(ID));
-			else AxEconomyMain.getSQL().addPlayerToDatabase(ID,name);
+			else AxEconomyMain.getSQL().addPlayerToDatabase(ID);
 			return true;
 		} catch (SQLException e) {}
 		return false;
@@ -367,15 +377,12 @@ public class AxEconomy implements net.milkbowl.vault.economy.Economy {
 	}
 	
 	public boolean setBank(OfflinePlayer player, HashMap<Integer,List<ItemStack>> banks) {
-		if (player != null) try {
-			AxEconomyMain.getSQL().updatePlayerBanksDatabase(player,banks);
-			return true;
-		} catch (SQLException e) {}
-		return false;
+		if (player == null) return false;
+		return setBank(player.getUniqueId(),banks);
 	}
 	
 	public double getBankBalance(String name) {
-		return getBankBalance(getOfflinePlayerUUID(name));
+		return getBankBalance(Utils.getPlayerUUIDByName(name));
 	}
 	
 	public double getBankBalance(String name, String world) {
@@ -395,7 +402,7 @@ public class AxEconomy implements net.milkbowl.vault.economy.Economy {
 	}
 	
 	public EconomyResponse withdrawBankPlayer(String name, double amount) {
-		return withdrawBankPlayer(getOfflinePlayerUUID(name),amount);
+		return withdrawBankPlayer(Utils.getPlayerUUIDByName(name),amount);
 	}
 	
 	public EconomyResponse withdrawBankPlayer(UUID ID, double amount) {
@@ -422,7 +429,7 @@ public class AxEconomy implements net.milkbowl.vault.economy.Economy {
 	}
 	
 	public EconomyResponse depositBankPlayer(String name, double amount) {
-		return depositBankPlayer(getOfflinePlayerUUID(name),amount);
+		return depositBankPlayer(Utils.getPlayerUUIDByName(name),amount);
 	}
 	
 	public EconomyResponse depositBankPlayer(UUID ID, double amount) {
@@ -446,25 +453,11 @@ public class AxEconomy implements net.milkbowl.vault.economy.Economy {
 	
 	public EconomyResponse depositBankPlayer(OfflinePlayer player, double amount) {
 		if (player == null) return new EconomyResponse(0,0,ResponseType.FAILURE,"Account doesn't exist");
-		double current;
-		if (amount < 0) return new EconomyResponse(0,0,ResponseType.FAILURE,"Cannot deposit negative funds");
-		try {
-			current = AxEconomyMain.getSQL().getPlayerBankBalanceFromDatabase(player.getUniqueId());
-		} catch (SQLException e) {
-			return new EconomyResponse(0,0,ResponseType.FAILURE,"Account doesn't exist");
-		}
-		try {
-			if (current + amount > getMaxBankBalance(player))
-				return new EconomyResponse(0,current,ResponseType.FAILURE,"Overdraft");
-			AxEconomyMain.getSQL().updatePlayerBankBalanceDatabase(player,current + amount);
-			return new EconomyResponse(amount,current + amount,ResponseType.SUCCESS,null);
-		} catch (SQLException e) {
-			return new EconomyResponse(0,current,ResponseType.FAILURE,"SQL error: " + e.getMessage());
-		}
+		return depositBankPlayer(player.getUniqueId(),amount);
 	}
 	
 	public double getMaxBankBalance(String name) {
-		return getMaxBankBalance(getOfflinePlayerUUID(name));
+		return getMaxBankBalance(Utils.getPlayerUUIDByName(name));
 	}
 	
 	public double getMaxBankBalance(UUID ID) {
@@ -479,7 +472,7 @@ public class AxEconomy implements net.milkbowl.vault.economy.Economy {
 	}
 	
 	public int getBanksCount(String name) {
-		return getBanksCount(getOfflinePlayerUUID(name));
+		return getBanksCount(Utils.getPlayerUUIDByName(name));
 	}
 	
 	public int getBanksCount(String name, String world) {
@@ -499,7 +492,7 @@ public class AxEconomy implements net.milkbowl.vault.economy.Economy {
 	}
 	
 	public EconomyResponse increaseBanksCount(String name) {
-		return increaseBanksCount(getOfflinePlayerUUID(name));
+		return increaseBanksCount(Utils.getPlayerUUIDByName(name));
 	}
 	
 	public EconomyResponse increaseBanksCount(UUID ID) {
@@ -521,28 +514,6 @@ public class AxEconomy implements net.milkbowl.vault.economy.Economy {
 	
 	public EconomyResponse increaseBanksCount(OfflinePlayer player) {
 		if (player == null) return new EconomyResponse(0,0,ResponseType.FAILURE,"Account doesn't exist");
-		int current;
-		try {
-			current = AxEconomyMain.getSQL().getPlayerBankCountFromDatabase(player.getUniqueId());
-		} catch (SQLException e) {
-			return new EconomyResponse(0,0,ResponseType.FAILURE,"Account doesn't exist");
-		}
-		try {
-			if (AxEconomyMain.getSQL().increasePlayerBankCountDatabase(player) == current)
-				return new EconomyResponse(0,current,ResponseType.FAILURE,"Maximum banks reached");
-			return new EconomyResponse(1,current + 1,ResponseType.SUCCESS,null);
-		} catch (SQLException e) {
-			return new EconomyResponse(0,current,ResponseType.FAILURE,"SQL error: " + e.getMessage());
-		}
-	}
-	
-	public UUID getOfflinePlayerUUID(String name) {
-		if (name == null) return null;
-		OfflinePlayer player = Utils.getOnlinePlayer(name);
-		if (player != null) return player.getUniqueId();
-		try {
-			return AxEconomyMain.getSQL().getPlayerUUIDByName(name);
-		} catch (SQLException e) {}
-		return null;
+		return increaseBanksCount(player.getUniqueId());
 	}
 }

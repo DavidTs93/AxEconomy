@@ -20,10 +20,7 @@ public class PlayerListener extends Listener {
 		try {
 			if (Utils.isPlayerNPC(Bukkit.getPlayer(event.getUniqueId()))) return;
 		} catch (Exception e) {}
-		if (AxEconomyMain.getEconomy().hasAccount(event.getUniqueId())) try {
-			AxEconomyMain.getSQL().updatePlayerNameDatabase(event.getUniqueId(),event.getName());
-		} catch (Exception e) {}
-		else if (!AxEconomyMain.getEconomy().createPlayerAccount(event.getUniqueId(),event.getName()))
+		if (AxEconomyMain.getEconomy().hasAccount(event.getUniqueId())) if (!AxEconomyMain.getEconomy().createPlayerAccount(event.getUniqueId(),event.getName()))
 			event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,Component.translatable("multiplayer.aldreda.login_error",NamedTextColor.RED));
 	}
 }

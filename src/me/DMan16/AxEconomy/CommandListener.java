@@ -29,12 +29,12 @@ public class CommandListener implements CommandExecutor,TabCompleter {
 			if (args[0].equalsIgnoreCase("pay")) {
 				EconomyResponse response = AxEconomyMain.getEconomy().depositPlayer(args[1],Double.parseDouble(args[2]));
 				if (response.transactionSuccess()) sender.sendMessage(Utils.chatColors("&aAdded ") + AxEconomyMain.getEconomy().format(response.amount,true) +
-						Utils.chatColors(" &ato &f" + AxEconomyMain.getSQL().getPlayerNameByUUID(AxEconomyMain.getSQL().getPlayerUUIDByName(args[1]))));
+						Utils.chatColors(" &ato &f" + Utils.getPlayerNameByUUID(Utils.getPlayerUUIDByName(args[1]))));
 				else Utils.chatColors(sender,"&c" + response.errorMessage);
 			} else if (args[0].equalsIgnoreCase("reduct")) {
 				EconomyResponse response = AxEconomyMain.getEconomy().withdrawPlayer(args[1],Double.parseDouble(args[2]));
 				if (response.transactionSuccess()) sender.sendMessage(Utils.chatColors("&aRemoved ") + AxEconomyMain.getEconomy().format(response.amount,true) +
-						Utils.chatColors(" &afrom &f" + AxEconomyMain.getSQL().getPlayerNameByUUID(AxEconomyMain.getSQL().getPlayerUUIDByName(args[1]))));
+						Utils.chatColors(" &afrom &f" + Utils.getPlayerNameByUUID(Utils.getPlayerUUIDByName(args[1]))));
 				else Utils.chatColors(sender,"&c" + response.errorMessage);
 			} else if (args[0].equalsIgnoreCase("balance")) {
 				double bal;
@@ -45,7 +45,7 @@ public class CommandListener implements CommandExecutor,TabCompleter {
 				} else {
 					bal = AxEconomyMain.getEconomy().getBalance(args[1]);
 					if (Double.isInfinite(bal)) throw new SQLException();
-					name = AxEconomyMain.getSQL().getPlayerNameByUUID(AxEconomyMain.getSQL().getPlayerUUIDByName(args[1]));
+					name = Utils.getPlayerNameByUUID(Utils.getPlayerUUIDByName(args[1]));
 				}
 				sender.sendMessage(Utils.chatColors("&aBalance for &f") + name + Utils.chatColors("&a: &f") + AxEconomyMain.getEconomy().format(bal,true));
 			} else if (args[0].equalsIgnoreCase("bank")) {
@@ -54,9 +54,9 @@ public class CommandListener implements CommandExecutor,TabCompleter {
 				String name = null;
 				if (args.length == 1) new BankViewer((Player) sender,((Player) sender).getUniqueId(),name);
 				else {
-					ID = AxEconomyMain.getSQL().getPlayerUUIDByName(args[1]);
+					ID = Utils.getPlayerUUIDByName(args[1]);
 					if (ID == null) throw new SQLException();
-					name = AxEconomyMain.getSQL().getPlayerNameByUUID(ID);
+					name = Utils.getPlayerNameByUUID(ID);
 					try {
 						if (Integer.parseInt(args[2]) == 16) new BankViewer((Player) sender,ID,name,true);
 						else throw new Exception();
